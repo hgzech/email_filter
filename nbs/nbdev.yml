@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "email_filter"
+  site-url: "https://hgzech.github.io/email_filter"
+  description: "An app that filters academic junk"
+  repo-branch: main
+  repo-url: "https://github.com/hgzech/email_filter"

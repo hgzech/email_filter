@@ -6,23 +6,37 @@
 
 ``` mermaid
 graph TD
-    A[Get Emails from Exchange] --&gt; B[Check if Email is Junk]
-    S[Generate/Update &#39;Safe&#39; List] -.-&gt; B
-    B --&gt;|Domain in &#39;Safe&#39; List| C[Not Junk]
-    B --&gt;|Domain not in &#39;Safe&#39; List| D[Domain Age Check]
-    D --&gt;|Young Domain| E[Junk]
-    D --&gt;|Old Domain| F[Not Junk]
-    C --&gt; G[Move to Inbox]
-    F --&gt; G
-    E --&gt; H[Move to Special Folder for Review]
-```
+    Start[Fetch New Emails] --&gt; CheckEmail[Check Email Address]
+    
+    %% Email Address Checks
+    CheckEmail --&gt;|Trusted Address| Inbox[Keep in Inbox]
+    CheckEmail --&gt;|Untrusted Address| CheckDomain[Check Domain]
+    
+    %% Domain Checks
+    CheckDomain --&gt;|Trusted Domain| IsNewsletter[Check if Newsletter]
+    CheckDomain --&gt;|Untrusted Domain| IsLegit[Check Domain Legitimacy]
+    
+    %% Newsletter Checks
+    IsNewsletter --&gt;|Is Newsletter| Unsubscribe[Move to Unsubscribe Folder]
+    IsNewsletter --&gt;|Not Newsletter| Inbox[Keep in Inbox]
+    
+    %% Legitimacy Checks
+    IsLegit --&gt;|Legit| IsNewsletter[Check if Newsletter]
+    IsLegit --&gt;|Not Legit| JunkReview[Move to Junk Review]
+    
+    %% Second Newsletter Checks
+    IsNewsletter --&gt;|Is Newsletter| Unsubscribe[Move to Unsubscribe Folder]
+    IsNewsletter --&gt;|Not Newsletter| Inbox[Keep in Inbox]
+    
+    %% Labels for Inbox Moves
+    style Inbox fill:#9f9,stroke:#333,stroke-width:2px
 
-The app works by checking the domain part of email addresses. It
-regularly generates a list of verified domains, for example based on
-emails I have sent in the past. If a domain is not in the verified list,
-it checks the domains age. If the domain is very young (e.g. \< 1 year),
-it categorizes the email as junk and moves it to a folder for future
-review.
+    
+    %% Labels for Folder Moves
+    style Unsubscribe fill:#ff9,stroke:#333,stroke-width:2px
+    style JunkReview fill:#f99,stroke:#333,stroke-width:2px
+
+```
 
 ## Install
 

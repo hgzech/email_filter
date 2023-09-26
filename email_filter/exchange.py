@@ -44,64 +44,54 @@ class EmailClient:
         self.mail = imaplib.IMAP4_SSL(server, port)
         self.mail.login(username, password)
 
-    def get_emails(self, from_folder = 'inbox', since_date=None):
+    def get_emails(self, from_folder='inbox', since_date=None, fetch_body=True):
         self.mail.select(f'"{from_folder}"')
-    
-        if since_date:
-            since_date_str = since_date.strftime('%d-%b-%Y')
-            status, messages = self.mail.search(None, f'SINCE {since_date_str}')
-        else:
-            status, messages = self.mail.search(None, "ALL")
-    
+        search_criteria = "ALL" if not since_date else f'SINCE {since_date.strftime("%d-%b-%Y")}'
+        status, messages = self.mail.search(None, search_criteria)
         email_ids = messages[0].split()
+        fetch_command = "(RFC822)" if fetch_body else "(BODY[HEADER])"
         email_objects = []
-    
-        for i in range(0, len(email_ids), 100):  # Fetch 100 emails at a time
+        for i in range(0, len(email_ids), 100):
             batch = email_ids[i:i+100]
             batch_str = ','.join(map(lambda x: x.decode(), batch))
-            status, msg_data = self.mail.fetch(batch_str, "(RFC822)")
-            index = 0
-            for response_part in msg_data:
-                if isinstance(response_part, tuple):
-                    msg = email.message_from_bytes(response_part[1])
-                    current_id = batch[index]
-                    index = index + 1
-                    subject, encoding = decode_header(msg["Subject"])[0]
-                    if isinstance(subject, bytes):
-                        try:
-                            subject = subject.decode(encoding if encoding else "utf-8")
-                        except:
-                            subject = ''
-    
-                    # Extract email text content only
-                    body = ""
-                    if msg.is_multipart():
-                        for part in msg.walk():
-                            if part.get_content_type() == "text/plain":
-                                try:
-                                    body = part.get_payload(decode=True).decode('utf-8')
-                                except UnicodeDecodeError:
-                                    body = part.get_payload(decode=True).decode('utf-8', 'ignore')
-                                break  # Once text content is found, no need to continue
-                    else:
-                        try:
-                            body = msg.get_payload(decode=True).decode('utf-8')
-                        except UnicodeDecodeError:
-                            body = msg.get_payload(decode=True).decode('utf-8', 'ignore')
-
-    
-                    # Create email object and add to list
-                    email_objects.append(EmailObject(msg["From"], msg["To"], msg["Cc"], msg["Bcc"], subject, body, current_id))
-    
+            status, msg_data = self.mail.fetch(batch_str, fetch_command)
+            self.process_batch(batch, msg_data, email_objects, fetch_body)
         return email_objects
+    
+    def process_batch(self, batch, msg_data, email_objects, fetch_body):
+        index = 0
+        for response_part in msg_data:
+            if not isinstance(response_part, tuple):
+                continue
+            msg = email.message_from_bytes(response_part[1])
+            current_id = batch[index]
+            index += 1
+            subject = self.decode_subject(msg["Subject"])
+            body = self.decode_body(msg) if fetch_body else ""
+            
+            email_objects.append(EmailObject(msg["From"], msg["To"], msg["Cc"], msg["Bcc"], subject, body, current_id))
+    
+    def decode_subject(self, encoded_subject):
+        subject, encoding = decode_header(encoded_subject)[0]
+        if isinstance(subject, bytes):
+            return subject.decode(encoding if encoding else "utf-8", 'ignore')
+        return subject
+    
+    def decode_body(self, msg):
+        if msg.is_multipart():
+            for part in msg.walk():
+                if part.get_content_type() == "text/plain":
+                    return part.get_payload(decode=True).decode('utf-8', 'ignore')
+        else:
+            return msg.get_payload(decode=True).decode('utf-8', 'ignore')
+        return ""
+
 
     def move_email(self, email_object, target_folder):
         email_id = email_object.email_id
-        
         # Ensure email_id is a byte-string
         if not isinstance(email_id, bytes):
             email_id = email_id.encode('utf-8')
-            
         result = self.mail.copy(email_id, target_folder)
         if result[0] == 'OK':
             self.mail.store(email_id, '+FLAGS', '(\Deleted)')

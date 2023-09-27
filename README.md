@@ -4,38 +4,28 @@
 
 ## Overview
 
-``` mermaid
-graph TD
-
-
-    Start[Fetch New Emails] --&gt; CheckAddress[Check Address]
-    Start[Fetch New Emails] --&gt; Update[Update trusted list based on new sent]
-
-
-    CheckAddress[Check Address] --&gt;|&quot;trusted\n(previous interaction)&quot;| Inbox[Inbox]
-    CheckAddress[Check Address] --&gt;|not trusted| CheckDomain[Check Domain]
-
-    
-    %% Domain Checks
-    CheckDomain --&gt;|&quot;trusted \n(previous interaction,\nknown university,\nor whitelist)&quot;| IsNewsletter1[Check if Newsletter]
-    CheckDomain --&gt;|untrusted| Occasionally[Read Occasionally]
-    
-    
-    %% Second Newsletter Checks
-    IsNewsletter1 --&gt;|&quot;newsletter\n(unsubscribe in email text,\nblacklist)&quot;| Occasionally[Read Occasionally]
-    IsNewsletter1 --&gt;|not Newsletter| Inbox[Inbox]
-    
-    %% Labels for Inbox Moves
-    style Inbox fill:#9f9,stroke:#333,stroke-width:2px
-
-    
-    %% Labels for Folder Moves
-    style Occasionally fill:#ff9,stroke:#333,stroke-width:2px
-
-```
+<img src="overview.png" />
 
 ## Install
 
+(pip install will be implemented soon)
+
 ``` sh
 pip install email_filter
+```
+
+## How to use
+
+``` python
+USERNAME = os.environ.get("EXCHANGE_USER")
+PASSWORD = os.environ.get("EXCHANGE_PASSWORD")
+
+# Usage example
+email_client = EmailClient("msx.tu-dresden.de", 993, USERNAME, PASSWORD)
+storage = DataStorage("../data")
+
+junk_checker = JunkChecker(email_client, storage)
+junk_checker.update_whitelists()
+bad_emails = junk_checker.filter_inbox()
+email_client.logout()
 ```

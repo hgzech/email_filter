@@ -35,10 +35,14 @@ class EmailObject:
     def get_all_addresses(self, tofrom):
         if not tofrom:
             return []
-        addresses = [a[1] for a in getaddresses(tofrom.split(','))]
-        addresses = [a for a in addresses if '@' in a]
+        try:
+            addresses = [a[1] for a in getaddresses(tofrom.split(','))]
+            addresses = [a for a in addresses if '@' in a]
+        except:
+            return []
         return addresses
 
+# %% ../nbs/00_exchange.ipynb 6
 class EmailClient:
     def __init__(self, server, port, username, password):
         self.mail = imaplib.IMAP4_SSL(server, port)
@@ -47,36 +51,35 @@ class EmailClient:
     def get_emails(self, from_folder='inbox', since_date=None, fetch_body=True):
         self.mail.select(f'"{from_folder}"')
         search_criteria = "ALL" if not since_date else f'SINCE {since_date.strftime("%d-%b-%Y")}'
-        status, messages = self.mail.search(None, search_criteria)
+        status, messages = self.mail.uid('search', None, search_criteria)
         email_ids = messages[0].split()
         fetch_command = "(RFC822)" if fetch_body else "(BODY[HEADER])"
         email_objects = []
         for i in range(0, len(email_ids), 100):
             batch = email_ids[i:i+100]
             batch_str = ','.join(map(lambda x: x.decode(), batch))
-            status, msg_data = self.mail.fetch(batch_str, fetch_command)
+            status, msg_data = self.mail.uid('fetch', batch_str, fetch_command)
             self.process_batch(batch, msg_data, email_objects, fetch_body)
         return email_objects
-    
+
     def process_batch(self, batch, msg_data, email_objects, fetch_body):
         index = 0
         for response_part in msg_data:
             if not isinstance(response_part, tuple):
                 continue
             msg = email.message_from_bytes(response_part[1])
-            current_id = batch[index]
+            current_id = batch[index].decode()
             index += 1
             subject = self.decode_subject(msg["Subject"])
             body = self.decode_body(msg) if fetch_body else ""
-            
             email_objects.append(EmailObject(msg["From"], msg["To"], msg["Cc"], msg["Bcc"], subject, body, current_id))
-    
+
     def decode_subject(self, encoded_subject):
         subject, encoding = decode_header(encoded_subject)[0]
         if isinstance(subject, bytes):
             return subject.decode(encoding if encoding else "utf-8", 'ignore')
         return subject
-    
+
     def decode_body(self, msg):
         if msg.is_multipart():
             for part in msg.walk():
@@ -86,16 +89,16 @@ class EmailClient:
             return msg.get_payload(decode=True).decode('utf-8', 'ignore')
         return ""
 
-
     def move_email(self, email_object, target_folder):
         email_id = email_object.email_id
         # Ensure email_id is a byte-string
         if not isinstance(email_id, bytes):
             email_id = email_id.encode('utf-8')
-        result = self.mail.copy(email_id, target_folder)
+        result = self.mail.uid('copy', email_id, target_folder)
         if result[0] == 'OK':
-            self.mail.store(email_id, '+FLAGS', '(\Deleted)')
+            self.mail.uid('store', email_id, '+FLAGS', '(\Deleted)')
             self.mail.expunge()
 
     def logout(self):
         self.mail.logout()
+

@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 import os
 
-# %% ../nbs/01_junk_checker.ipynb 6
+# %% ../nbs/01_junk_checker.ipynb 4
 import os
 import json
 
@@ -18,36 +18,59 @@ class DataStorage:
         self.folder_path = folder_path
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
-    
+
     def _get_file_path(self, file_name):
         return os.path.join(self.folder_path, file_name)
-    
+
+    def _datetime_serializer(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        raise TypeError("Type not serializable")
+
+    def _datetime_deserializer(self, dct):
+        for key, value in dct.items():
+            try:
+                dct[key] = datetime.fromisoformat(value)
+            except (TypeError, ValueError):
+                pass
+        return dct
+
     def write_to_json(self, file_name, data):
         file_path = self._get_file_path(file_name)
         with open(file_path, 'w') as f:
-            json.dump(data, f, indent = 2)
-    
-    def read_from_json(self, file_name):
+            json.dump(data, f, indent=2, default=self._datetime_serializer)
+
+    def read_from_json(self, file_name, default = None):
         file_path = self._get_file_path(file_name)
         if not os.path.exists(file_path):
-            return None
+            return default
         with open(file_path, 'r') as f:
-            return json.load(f)
-    
+            return json.load(f, object_hook=self._datetime_deserializer)
 
+# %% ../nbs/01_junk_checker.ipynb 5
+# TODO: Implement update function that updates whitelists, filters inbox, and refreshes last update file
 
-
-
-# %% ../nbs/01_junk_checker.ipynb 7
 class JunkChecker:
     def __init__(self, email_client, storage):
         self.client = email_client
 
     def get_last_update_date(self):
-        last_update = storage.read_from_json("last_update.json")
-        if not last_update:
-            last_update = datetime(2020, 7, 1)
+        default = {"updated":datetime(2023, 9, 26)}
+        last_update = storage.read_from_json("last_update.json",default = default)["updated"]
         return last_update
+
+    def store_last_update_date(self):
+        current_date = datetime.now().date()
+        last_update = storage.write_to_json("last_update.json", {"updated":current_date})  
+
+    def filter_inbox(self):
+        last_update = self.get_last_update_date()
+        emails = email_client.get_emails(from_folder = "Inbox", since_date=last_update, fetch_body = False)
+        bad_emails = [e for e in emails if len(e.sender)]
+        bad_emails = [e for e in bad_emails if extract_domain(e.sender[0]) not in self.domain_whitelist]
+        for e in bad_emails:
+            email_client.move_email(e, 'Review')
+            
 
     def update_whitelists(self):
         last_update = self.get_last_update_date()
@@ -55,7 +78,11 @@ class JunkChecker:
         addresses = [email.recipient + email.cc + email.bcc for email in emails]
         addresses = list(set([a.lower() for alist in addresses for a in alist]))
         domains = list(set([extract_domain(address) for address in addresses]))
+        old_addresses = storage.read_from_json("address_whitelist.json", default = [])
+        old_domains = storage.read_from_json("domain_whitelist.json", default = [])
+        addresses = list(set(old_addresses+addresses))
+        domains = list(set(old_domains+domains))
+        self.address_whitelist = addresses
+        self.domain_whitelist = domains
         storage.write_to_json("address_whitelist.json", addresses)
         storage.write_to_json("domain_whitelist.json", domains)
-        
-        

@@ -4,13 +4,14 @@
 
 ## Overview
 
-``` mermaid
-  graph TD;
-      A-->B;
-      A-->C;
-      B-->D;
-      C-->D;
-```
+This email filter works by extracting “trusted domains” from addresses
+that you’ve previously sent emails too. Based on these trusted domains,
+emails from your inbox are filtered.
+
+In future updates, the filter should also distinguish between trusted
+addresses and trusted domains, to only allow some (e.g., non newsletter)
+emails from trusted domains. The full idea of the filter can be seen
+below:
 
 ``` mermaid
 graph TD
@@ -41,15 +42,15 @@ pip install email_filter
 ## How to use
 
 ``` python
-USERNAME = os.environ.get("EXCHANGE_USER")
-PASSWORD = os.environ.get("EXCHANGE_PASSWORD")
+# Setup
+USERNAME = os.environ.get("EXCHANGE_USER") # Set this to your exchange user
+PASSWORD = os.environ.get("EXCHANGE_PASSWORD") # Set this to your exchange password
+email_client = EmailClient("msx.tu-dresden.de", 993, USERNAME, PASSWORD) # Set this to your exchange server
+storage = DataStorage("../data") # Set this to the folder where you want you whitelist files stored
 
-# Usage example
-email_client = EmailClient("msx.tu-dresden.de", 993, USERNAME, PASSWORD)
-storage = DataStorage("../data")
-
+# Filter
 junk_checker = JunkChecker(email_client, storage)
-junk_checker.update_whitelists()
-bad_emails = junk_checker.filter_inbox()
+junk_checker.update_whitelists() # Updating trusted addresses and domains based on your "Sent Items" folder
+bad_emails = junk_checker.filter_inbox() # Filtering inbox based on trusted domains
 email_client.logout()
 ```

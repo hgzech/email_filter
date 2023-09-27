@@ -1,0 +1,44 @@
+[
+  {
+    "objectID": "junk_checker.html",
+    "href": "junk_checker.html",
+    "title": "junk_checker",
+    "section": "",
+    "text": "source\n\nDataStorage\n\n DataStorage (folder_path)\n\nInitialize self. See help(type(self)) for accurate signature.\n\nsource\n\n\nJunkChecker\n\n JunkChecker (email_client, storage)\n\nInitialize self. See help(type(self)) for accurate signature.\n\nUSERNAME = os.environ.get(\"EXCHANGE_USER\")\nPASSWORD = os.environ.get(\"EXCHANGE_PASSWORD\")\n\n# Usage example\nemail_client = EmailClient(\"msx.tu-dresden.de\", 993, USERNAME, PASSWORD)\nstorage = DataStorage(\"../data\")\n\njunk_checker = JunkChecker(email_client, storage)\njunk_checker.update_whitelists()\nbad_emails = junk_checker.filter_inbox()\nemail_client.logout()"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "email_filter",
+    "section": "",
+    "text": "This email filter works by extracting “trusted domains” from addresses that you’ve previously sent emails too. Based on these trusted domains, emails from your inbox are filtered.\nIn future updates, the filter should also distinguish between trusted addresses and trusted domains, to only allow some (e.g., non newsletter) emails from trusted domains. The full idea of the filter can be seen below:\n\n\n\n\ngraph TD\n    Start[Fetch New Emails] --&gt; CheckAddress[Check Address]\n    Start[Fetch New Emails] --&gt; Update[Update trusted list based on new sent]\n    CheckAddress[Check Address] --&gt;|\"trusted\\n(previous interaction)\"| Inbox[Inbox]\n    CheckAddress[Check Address] --&gt;|not trusted| CheckDomain[Check Domain]\n    %% Domain Checks\n    CheckDomain --&gt;|\"trusted \\n(previous interaction,\\nknown university,\\nor whitelist)\"| IsNewsletter1[Check if Newsletter]\n    CheckDomain --&gt;|untrusted| Occasionally[Read Occasionally]\n    %% Second Newsletter Checks\n    IsNewsletter1 --&gt;|\"newsletter\\n(unsubscribe in email text,\\nblacklist)\"| Occasionally[Read Occasionally]\n    IsNewsletter1 --&gt;|not Newsletter| Inbox[Inbox]\n    %% Labels for Inbox Moves\n    style Inbox fill:#9f9,stroke:#333,stroke-width:2px\n    %% Labels for Folder Moves\n    style Occasionally fill:#ff9,stroke:#333,stroke-width:2px"
+  },
+  {
+    "objectID": "index.html#overview",
+    "href": "index.html#overview",
+    "title": "email_filter",
+    "section": "",
+    "text": "This email filter works by extracting “trusted domains” from addresses that you’ve previously sent emails too. Based on these trusted domains, emails from your inbox are filtered.\nIn future updates, the filter should also distinguish between trusted addresses and trusted domains, to only allow some (e.g., non newsletter) emails from trusted domains. The full idea of the filter can be seen below:\n\n\n\n\ngraph TD\n    Start[Fetch New Emails] --&gt; CheckAddress[Check Address]\n    Start[Fetch New Emails] --&gt; Update[Update trusted list based on new sent]\n    CheckAddress[Check Address] --&gt;|\"trusted\\n(previous interaction)\"| Inbox[Inbox]\n    CheckAddress[Check Address] --&gt;|not trusted| CheckDomain[Check Domain]\n    %% Domain Checks\n    CheckDomain --&gt;|\"trusted \\n(previous interaction,\\nknown university,\\nor whitelist)\"| IsNewsletter1[Check if Newsletter]\n    CheckDomain --&gt;|untrusted| Occasionally[Read Occasionally]\n    %% Second Newsletter Checks\n    IsNewsletter1 --&gt;|\"newsletter\\n(unsubscribe in email text,\\nblacklist)\"| Occasionally[Read Occasionally]\n    IsNewsletter1 --&gt;|not Newsletter| Inbox[Inbox]\n    %% Labels for Inbox Moves\n    style Inbox fill:#9f9,stroke:#333,stroke-width:2px\n    %% Labels for Folder Moves\n    style Occasionally fill:#ff9,stroke:#333,stroke-width:2px"
+  },
+  {
+    "objectID": "index.html#install",
+    "href": "index.html#install",
+    "title": "email_filter",
+    "section": "Install",
+    "text": "Install\n(pip install will be implemented soon)\npip install email_filter"
+  },
+  {
+    "objectID": "index.html#how-to-use",
+    "href": "index.html#how-to-use",
+    "title": "email_filter",
+    "section": "How to use",
+    "text": "How to use\n\n# Setup\nUSERNAME = os.environ.get(\"EXCHANGE_USER\") # Set this to your exchange user\nPASSWORD = os.environ.get(\"EXCHANGE_PASSWORD\") # Set this to your exchange password\nemail_client = EmailClient(\"msx.tu-dresden.de\", 993, USERNAME, PASSWORD) # Set this to your exchange server\nstorage = DataStorage(\"../data\") # Set this to the folder where you want you whitelist files stored\n\n# Filter\njunk_checker = JunkChecker(email_client, storage)\njunk_checker.update_whitelists() # Updating trusted addresses and domains based on your \"Sent Items\" folder\nbad_emails = junk_checker.filter_inbox() # Filtering inbox based on trusted domains\nemail_client.logout()"
+  },
+  {
+    "objectID": "exchange.html",
+    "href": "exchange.html",
+    "title": "exchange",
+    "section": "",
+    "text": "Run the following in exchange to export your exchange user name and password (restart Terminal and Jupyter lab if it does not work):\necho 'export EXCHANGE_USER=\"YOUR_USERNAME\"' &gt;&gt; ~/.bashrc && grep -q 'source ~/.bashrc' ~/.bash_profile || echo -e \"\\nif [ -f ~/.bashrc ]; then\\n  source ~/.bashrc\\nfi\" &gt;&gt; ~/.bash_profile && source ~/.bashrc\nand\necho 'export EXCHANGE_PASSWORD=\"YOUR_PASSWORD\"' &gt;&gt; ~/.bashrc && grep -q 'source ~/.bashrc' ~/.bash_profile || echo -e \"\\nif [ -f ~/.bashrc ]; then\\n  source ~/.bashrc\\nfi\" &gt;&gt; ~/.bash_profile && source ~/.bashrc\n\nsource\n\nEmailObject\n\n EmailObject (sender, recipient, cc, bcc, subject, body, email_id)\n\nInitialize self. See help(type(self)) for accurate signature.\n\nsource\n\n\nextract_domain\n\n extract_domain (address)\n\n\nsource\n\n\nextract_domains\n\n extract_domains (addresses)\n\n\nsource\n\n\nEmailClient\n\n EmailClient (server, port, username, password)\n\nInitialize self. See help(type(self)) for accurate signature.\n\nUSERNAME = os.environ.get(\"EXCHANGE_USER\")\nPASSWORD = os.environ.get(\"EXCHANGE_PASSWORD\")\n\n# Usage example\nemail_client = EmailClient(\"msx.tu-dresden.de\", 993, USERNAME, PASSWORD)\n\n# Fetch emails since a specific date\nsince_date = datetime(2023, 9, 26)  # Replace with actual date\nemails = email_client.get_emails(from_folder = \"inbox\", since_date=since_date, fetch_body = False)\n\n# Print and move emails\nfor e in emails:\n    print(f\"Subject: {e.subject}, ID: {e.bcc}\")\n    #email_client.move_email(e, 'Review')\n\nemail_client.move_email(emails[8], 'Review')\nemail_client.move_email(emails[10], 'Review')\n# Logout to close the connection\nemail_client.logout()\n\nSubject: Re: [ext] TRR SST fMRT Daten, ID: []\nSubject: Re:  Re: [ext] TRR SST fMRT Daten, ID: []\nSubject: Invitation Mail: submit an article, ID: []\nSubject: Beschaeftigten-Verteiler: Hochschuldidaktische Angebote für Lehrende der TU Dresden// Offers in Teaching and Learning in Higher Education for TU Dresden Lecturers, ID: []\nSubject: Rapid publishing is possible with our journal - MCCRJ, ID: []\nSubject: Re: Collaboration proposal on mobile Approach Avoidance Task, ID: []\nSubject: RE: [ext] TRR SST fMRT Daten, ID: []\nSubject: AW: [ext] TRR SST fMRT Daten, ID: []\nSubject: We are Eagerly Waiting for your Current/Upcoming Research Work: Annals of Infertility and Reproductive Endocrinology(ISSN 2638-356X), ID: []\nSubject: Encourage young researchers with your work - Clinics in Surgery™ (Impact Factor-1.995)*, ID: []\nSubject: Re: [Ext] Study design from your Current Biology paper, ID: []\nSubject: Schutz am Edge mit AWS-Sicherheitsservices, ID: []\nSubject: Re: [Ext] Study design from your Current Biology paper, ID: []\nSubject: Kindly consider our humble request to submit your manuscript Dr.Zech Hilmar, ID: []\nSubject: Re: Longitudinal paper, ID: []"
+  }
+]
